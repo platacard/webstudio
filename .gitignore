@@ -63,3 +63,7 @@ dist
 packages/prisma-client/src/__generated__
 
 .temp
+
+
+.nx/cache
+.nx/workspace-data
