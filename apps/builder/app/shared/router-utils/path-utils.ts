@@ -64,12 +64,13 @@ export const builderUrl = (props: {
   return url.href;
 };
 
-export const dashboardPath = () => {
-  return "/dashboard";
-};
-
-export const templatesPath = () => {
-  return "/dashboard/templates";
+export const dashboardPath = (
+  view: "templates" | "search" | "projects" = "projects"
+) => {
+  if (view === "projects") {
+    return `/dashboard`;
+  }
+  return `/dashboard/${view}`;
 };
 
 export const dashboardUrl = (props: { origin: string }) => {
@@ -106,17 +107,11 @@ export const userPlanSubscriptionPath = () => {
   return `/n8n/billing_portal/sessions?${urlSearchParams.toString()}`;
 };
 
-export const authCallbackPath = ({
-  provider,
-}: {
-  provider: "google" | "github";
-}) => `/auth/${provider}/callback`;
+export const authCallbackPath = ({ provider }: { provider: "google" }) =>
+  `/auth/${provider}/callback`;
 
-export const authPath = ({
-  provider,
-}: {
-  provider: "google" | "github" | "dev";
-}) => `/auth/${provider}`;
+export const authPath = ({ provider }: { provider: "google" | "dev" }) =>
+  `/auth/${provider}`;
 
 export const restAssetsPath = () => {
   return `/rest/assets`;
@@ -146,6 +141,3 @@ export const restAi = (subEndpoint?: "detect" | "audio/transcriptions") =>
   typeof subEndpoint === "string" ? `/rest/ai/${subEndpoint}` : "/rest/ai";
 
 export const restResourcesLoader = () => `/rest/resources-loader`;
-
-export const marketplacePath = (method: string) =>
-  `/builder/marketplace/${method}`;

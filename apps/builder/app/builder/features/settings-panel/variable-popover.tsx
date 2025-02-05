@@ -97,7 +97,10 @@ const NameField = ({
   const variablesByName = useStore($variablesByName);
   const validateName = useCallback(
     (value: string) => {
-      if (variablesByName.get(value) !== variableId) {
+      if (
+        variablesByName.has(value) &&
+        variablesByName.get(value) !== variableId
+      ) {
         return "Name is already used by another variable on this instance";
       }
       if (value.trim().length === 0) {
@@ -439,6 +442,7 @@ BooleanForm.displayName = "BooleanForm";
 
 const validateJsonValue = (expression: string) => {
   const diagnostics = lintExpression({ expression });
+  // prevent saving with any message including unset variable
   return diagnostics.length > 0 ? "error" : "";
 };
 
@@ -809,7 +813,14 @@ export const VariablePopoverTrigger = ({
                 if (requiresUpgrade) {
                   return;
                 }
-                if (event.currentTarget.checkValidity()) {
+                const nameElement =
+                  event.currentTarget.elements.namedItem("name");
+                // make sure only name is valid and allow to save everything else
+                // to avoid loosing complex configuration when closed accidentally
+                if (
+                  nameElement instanceof HTMLInputElement &&
+                  nameElement.checkValidity()
+                ) {
                   const formData = new FormData(event.currentTarget);
                   panelRef.current?.save(formData);
                   // close popover whenever new variable is created

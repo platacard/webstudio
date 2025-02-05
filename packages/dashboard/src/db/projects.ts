@@ -32,12 +32,7 @@ export const findMany = async (userId: string, context: AppContext) => {
 
   return data.data as SetNonNullable<
     (typeof data.data)[number],
-    | "id"
-    | "title"
-    | "domain"
-    | "isDeleted"
-    | "createdAt"
-    | "marketplaceApprovalStatus"
+    "id" | "title" | "domain" | "isDeleted" | "createdAt"
   >[];
 };
 
@@ -60,38 +55,6 @@ export const findManyByIds = async (
   }
   return data.data as SetNonNullable<
     (typeof data.data)[number],
-    | "id"
-    | "title"
-    | "domain"
-    | "isDeleted"
-    | "createdAt"
-    | "marketplaceApprovalStatus"
+    "id" | "title" | "domain" | "isDeleted" | "createdAt"
   >[];
-};
-
-export const hasAny = async (userId: string, context: AppContext) => {
-  if (context.authorization.type !== "user") {
-    throw new AuthorizationError(
-      "Only logged in users can view the project list"
-    );
-  }
-
-  if (userId !== context.authorization.userId) {
-    throw new AuthorizationError(
-      "Only the project owner can view the project list"
-    );
-  }
-
-  const data = await context.postgrest.client
-    .from("DashboardProject")
-    .select("id")
-    .limit(1)
-    .eq("userId", userId)
-    .eq("isDeleted", false);
-
-  if (data.error) {
-    throw data.error;
-  }
-
-  return data.data.length > 0;
 };

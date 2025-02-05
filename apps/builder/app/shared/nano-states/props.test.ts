@@ -2,17 +2,12 @@ import { beforeEach, expect, test } from "vitest";
 import { cleanStores } from "nanostores";
 import { createDefaultPages } from "@webstudio-is/project-build";
 import { setEnv } from "@webstudio-is/feature-flags";
-import {
-  type Instance,
-  encodeDataSourceVariable,
-  collectionComponent,
-} from "@webstudio-is/sdk";
+import { type Instance, collectionComponent } from "@webstudio-is/sdk";
 import { textContentAttribute } from "@webstudio-is/react-sdk";
 import { $instances } from "./instances";
 import {
   $propValuesByInstanceSelector,
   $variableValuesByInstanceSelector,
-  computeExpression,
 } from "./props";
 import { $pages } from "./pages";
 import { $assets, $dataSources, $props, $resources } from "./misc";
@@ -93,12 +88,14 @@ test("compute expression prop values", () => {
     toMap([
       {
         id: "var1",
+        scopeInstanceId: "box",
         type: "variable",
         name: "",
         value: { type: "number", value: 1 },
       },
       {
         id: "var2",
+        scopeInstanceId: "box",
         type: "variable",
         name: "",
         value: { type: "string", value: "Hello" },
@@ -162,6 +159,7 @@ test("generate action prop callbacks", () => {
     toMap([
       {
         id: "var",
+        scopeInstanceId: "box",
         type: "variable",
         name: "",
         value: { type: "number", value: 1 },
@@ -292,6 +290,7 @@ test("compute expression from collection items", () => {
     toMap([
       {
         id: "itemId",
+        scopeInstanceId: "list",
         type: "parameter",
         name: "item",
       },
@@ -362,6 +361,7 @@ test("access parameter value from variables values", () => {
     toMap([
       {
         id: "parameterId",
+        scopeInstanceId: "body",
         type: "parameter",
         name: "paramName",
       },
@@ -400,6 +400,7 @@ test("compute props bound to resource variables", () => {
     toMap([
       {
         id: "resourceVariableId",
+        scopeInstanceId: "body",
         type: "resource",
         name: "paramName",
         resourceId: "resourceId",
@@ -971,25 +972,4 @@ test("prefill default system variable value", () => {
   );
 
   cleanStores($variableValuesByInstanceSelector);
-});
-
-test("compute expression when invalid syntax", () => {
-  expect(computeExpression("https://github.com", new Map())).toEqual(undefined);
-});
-
-test("compute literal expression when variable is json object", () => {
-  const variableName = "jsonVariable";
-  const encVariableName = encodeDataSourceVariable(variableName);
-  const jsonObject = { hello: "world", subObject: { world: "hello" } };
-  const variables = new Map([[variableName, jsonObject]]);
-  const expression = "`${" + encVariableName + "}`";
-
-  expect(computeExpression(expression, variables)).toEqual(
-    JSON.stringify(jsonObject)
-  );
-
-  const subObjectExpression = "`${" + encVariableName + ".subObject}`";
-  expect(computeExpression(subObjectExpression, variables)).toEqual(
-    JSON.stringify(jsonObject.subObject)
-  );
 });

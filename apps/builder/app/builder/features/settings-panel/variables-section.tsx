@@ -3,6 +3,7 @@ import { computed } from "nanostores";
 import { useStore } from "@nanostores/react";
 import {
   Button,
+  css,
   CssValueListArrowFocus,
   CssValueListItem,
   DropdownMenu,
@@ -48,25 +49,37 @@ import {
 import {
   $selectedInstance,
   $selectedInstanceKey,
+  $selectedInstancePath,
   $selectedPage,
 } from "~/shared/awareness";
 
 /**
  * find variables defined specifically on this selected instance
  */
-const $instanceVariables = computed(
-  [$selectedInstance, $dataSources],
-  (instance, dataSources) => {
-    const matchedVariables: DataSource[] = [];
-    if (instance === undefined) {
-      return matchedVariables;
+const $availableVariables = computed(
+  [$selectedInstancePath, $dataSources],
+  (instancePath, dataSources) => {
+    if (instancePath === undefined) {
+      return [];
     }
-    for (const dataSource of dataSources.values()) {
-      if (instance.id === dataSource.scopeInstanceId) {
-        matchedVariables.push(dataSource);
+    const [{ instanceSelector }] = instancePath;
+    const [selectedInstanceId] = instanceSelector;
+    const availableVariables = new Map<DataSource["name"], DataSource>();
+    // order from ancestor to descendant
+    // so descendants can override ancestor variables
+    for (const { instance } of instancePath.slice().reverse()) {
+      for (const dataSource of dataSources.values()) {
+        if (dataSource.scopeInstanceId === instance.id) {
+          availableVariables.set(dataSource.name, dataSource);
+        }
       }
     }
-    return matchedVariables;
+    // order local variables first
+    return Array.from(availableVariables.values()).sort((left, right) => {
+      const leftRank = left.scopeInstanceId === selectedInstanceId ? 0 : 1;
+      const rightRank = right.scopeInstanceId === selectedInstanceId ? 0 : 1;
+      return leftRank - rightRank;
+    });
   }
 );
 
@@ -179,21 +192,26 @@ const EmptyVariables = () => {
   );
 };
 
+const variableLabelStyle = css({
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "100%",
+});
+
 const VariablesItem = ({
   variable,
+  source,
   index,
   value,
   usageCount,
 }: {
   variable: DataSource;
+  source: "local" | "remote";
   index: number;
   value: unknown;
   usageCount: number;
 }) => {
-  const label =
-    value === undefined
-      ? variable.name
-      : `${variable.name}: ${formatValuePreview(value)}`;
   const [inspectDialogOpen, setInspectDialogOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   return (
@@ -201,7 +219,20 @@ const VariablesItem = ({
       <CssValueListItem
         id={variable.id}
         index={index}
-        label={<Label truncate>{label}</Label>}
+        label={
+          <Flex align="center">
+            <Label tag="label" color={source}>
+              {variable.name}
+            </Label>
+            {value !== undefined && (
+              <span className={variableLabelStyle.toString()}>
+                &nbsp;
+                {formatValuePreview(value)}
+              </span>
+            )}
+          </Flex>
+        }
+        disabled={source === "remote"}
         data-state={isMenuOpen ? "open" : undefined}
         buttons={
           <>
@@ -234,13 +265,15 @@ const VariablesItem = ({
                   <DropdownMenuItem onSelect={() => setInspectDialogOpen(true)}>
                     Inspect
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    // allow to delete only unused variables
-                    disabled={variable.type === "parameter" || usageCount > 0}
-                    onSelect={() => deleteVariable(variable.id)}
-                  >
-                    Delete {usageCount > 0 && `(${usageCount} bindings)`}
-                  </DropdownMenuItem>
+                  {source === "local" && (
+                    <DropdownMenuItem
+                      // allow to delete only unused variables
+                      disabled={variable.type === "parameter" || usageCount > 0}
+                      onSelect={() => deleteVariable(variable.id)}
+                    >
+                      Delete {usageCount > 0 && `(${usageCount} bindings)`}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenuPortal>
             </DropdownMenu>
@@ -252,7 +285,8 @@ const VariablesItem = ({
 };
 
 const VariablesList = () => {
-  const availableVariables = useStore($instanceVariables);
+  const instance = useStore($selectedInstance);
+  const availableVariables = useStore($availableVariables);
   const variableValues = useStore($instanceVariableValues);
   const usedVariables = useStore($usedVariables);
 
@@ -262,18 +296,19 @@ const VariablesList = () => {
 
   return (
     <CssValueListArrowFocus>
-      {availableVariables.map((variable, index) => {
-        const value = variableValues.get(variable.id);
-        return (
-          <VariablesItem
-            key={variable.id}
-            value={value}
-            variable={variable}
-            index={index}
-            usageCount={usedVariables.get(variable.id) ?? 0}
-          />
-        );
-      })}
+      {/* local variables should be ordered first to not block tab to first item */}
+      {availableVariables.map((variable, index) => (
+        <VariablesItem
+          key={variable.id}
+          source={
+            instance?.id === variable.scopeInstanceId ? "local" : "remote"
+          }
+          value={variableValues.get(variable.id)}
+          variable={variable}
+          index={index}
+          usageCount={usedVariables.get(variable.id) ?? 0}
+        />
+      ))}
     </CssValueListArrowFocus>
   );
 };

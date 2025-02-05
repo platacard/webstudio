@@ -127,8 +127,8 @@ export const FloatingPanel = ({
         placement === "bottom" && flip(),
         offset(offsetProp),
       ],
-    }).then((position) => {
-      setPosition(position);
+    }).then(({ x, y }) => {
+      setPosition({ x, y });
       positionIsSetRef.current = true;
     });
   }, [
@@ -158,6 +158,7 @@ export const FloatingPanel = ({
         width={width}
         height={height}
         {...position}
+        aria-describedby={undefined}
         onInteractOutside={(event) => {
           // When a dialog is centered, we don't want to close it when clicking outside
           // This allows having inline and left positioned dialogs open at the same time as a centered dialog,
