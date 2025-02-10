@@ -1,31 +1,25 @@
-FROM node:22.13.1-alpine AS builder
+FROM node:22.13.1-alpine AS base
 
-# Set working directory
 WORKDIR /app
+# note: all these files need because of pnpm workspace 
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages ./packages
+COPY patches ./patches
 
-# Copy application files 
-COPY packages/ ./packages
-COPY pnpm-workspace.yaml ./
-COPY apps/builder/ ./
+COPY apps/builder/build ./apps/builder/build
+COPY apps/builder/package.json ./apps/builder/package.json
 
-# Install dependencies
-RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install
+FROM base AS prod-deps
+RUN npm i -g pnpm@9.14.4
+RUN pnpm i --prod --frozen-lockfile --filter @webstudio-is/builder
 
-# Build the application (if needed, adjust accordingly)
-RUN pnpm run build
+FROM node:22.13.1-alpine
+WORKDIR /app/apps/builder
 
-# -- Second Stage: Production Image --
-FROM node:22.13.1-alpine AS production
+COPY --from=base /app/apps/builder/build ./build
 
-# Set working directory
-WORKDIR /app
+COPY --from=prod-deps /app/node_modules ../../node_modules
+COPY --from=prod-deps /app/apps/builder/node_modules ./node_modules
 
-# Copy only necessary files from builder stage
-COPY --from=builder /app .
-
-# Expose necessary port
 EXPOSE 13100
-
-# Set entry point
 CMD ["npx", "remix-serve", "build/server/index.js"]
