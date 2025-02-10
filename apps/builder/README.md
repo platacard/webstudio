@@ -1,23 +1,33 @@
 # Builder app
 
-### How to build and run the app:
+## How to build and run the app:
+Install pnpm:\
+`npm i -g pnpm@latest`
+---
+### Dev mode
+Isntall deps:\
+`pnpm i`
 
-Install deps:\
-```pnpm i --frozen-lockfile --filter @webstudio-is/builder```
+Run:\
+`pnpm run dev`
+---
+### Prod mode
+Install runtime deps (optional: don't need if you installed all deps previously):\
+`pnpm i --frozen-lockfile --prod --filter @webstudio-is/builder`
 
-build app: 
+Build app: 
 ```
 cd apps/builder
-pnpm build
+pnpm run build
 ```
 
 Run app:\
-```pnpm start```
-
+`pnpm run start`
+---
 ### Docker
 
 Build docker image:\
-```docker build --no-cache -t builder -f Dockerfile .```
+`docker build --no-cache -t builder -f Dockerfile .`
 
 Run container:\
-```docker run --rm -p 13100:13100 builder:latest```
+`docker run --rm -p 13100:13100 builder:latest`
